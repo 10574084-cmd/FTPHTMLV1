@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>File Access</title>
+<style>
+body{font:16px Arial,sans-serif;background:#10131b;color:#fff;margin:0;padding:18px}
+main{max-width:760px;margin:auto}
+.card{background:#202635;border:1px solid #39465d;border-radius:10px;padding:14px;margin:12px 0;overflow-wrap:anywhere}
+button,input{font:inherit;padding:10px;margin:6px 0;max-width:100%}
+button{background:#3167b1;color:#fff;border:0;border-radius:7px}
+small{color:#bbc8dc}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:50vh;overflow:auto;background:#090d14;padding:10px}
+</style>
+</head>
+<body><main>
+<h1>📁 File Access</h1>
+<p>Explora los archivos que tú decidas seleccionar en este dispositivo.</p>
+<div class="card"><strong>Privacidad:</strong> esta página solo puede leer los archivos que selecciones manualmente. No puede entrar a escondidas a todas las carpetas ni ver los archivos de otros visitantes.</div>
+<label for="files">Seleccionar archivos:</label><br>
+<input id="files" type="file" multiple>
+<div id="list"></div>
+<script>
+(function(){
+var picker=document.getElementById('files');
+var list=document.getElementById('list');
+picker.onchange=function(){
+  list.innerHTML='';
+  var files=picker.files;
+  for(var i=0;i<files.length;i++){
+    (function(file){
+      var card=document.createElement('div');card.className='card';
+      var title=document.createElement('h3');title.textContent=file.name;
+      var info=document.createElement('small');info.textContent=(file.type||'Tipo desconocido')+' · '+file.size+' bytes';
+      card.appendChild(title);card.appendChild(info);
+      if(/\.(txt|json|html|css|js|xml|md|csv|log)$/i.test(file.name)||/^text\//i.test(file.type)){
+        var btn=document.createElement('button');btn.textContent='Ver contenido';
+        var preview=document.createElement('pre');
+        btn.onclick=function(){
+          if(file.text){file.text().then(function(t){preview.textContent=t;},function(){preview.textContent='Este navegador no permite leer el contenido de este archivo.';});}
+          else if(window.FileReader){var reader=new FileReader();reader.onload=function(){preview.textContent=reader.result;};reader.onerror=function(){preview.textContent='No se pudo leer el archivo.';};reader.readAsText(file);}
+          else{preview.textContent='Este navegador no admite la vista previa de texto.';}
+        };
+        card.appendChild(document.createElement('br'));card.appendChild(btn);card.appendChild(preview);
+      }
+      list.appendChild(card);
+    })(files[i]);
+  }
+};
+})();
+</script>
+</main></body></html>
