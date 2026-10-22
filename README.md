@@ -4,36 +4,45 @@ Interfaz web estática para administrar archivos a través de una API HTTP compa
 
 ## Página web
 
-El workflow de GitHub Actions publica automáticamente `index.html` en GitHub Pages al hacer push a `main`.
+La página se publica con GitHub Actions en:
 
-URL prevista del sitio: https://10574084-cmd.github.io/FTPHTMLV1/
+**https://10574084-cmd.github.io/FTPHTMLV1/**
 
-Abre **Actions → Deploy FTPHTMLV1 to GitHub Pages** para verificar el estado de la publicación. La primera ejecución puede tardar un poco. Si GitHub Pages no está activado para el repositorio, entra a **Settings → Pages** y elige **GitHub Actions** como origen de publicación.
+Workflow: [Deploy FTPHTMLV1](https://github.com/10574084-cmd/FTPHTMLV1/actions/workflows/pages.yml)
 
-## Configuración de la interfaz
+## Código que debes poner en Cloudflare
 
-1. Abre la URL publicada.
-2. En «URL HTTPS del puente», introduce la URL del Worker o servicio HTTP que implementa la API.
-3. Introduce la clave `ACCESS_KEY` que configuraste en ese servicio.
-4. Pulsa **Conectar**.
+El código del Worker está en **[`cloudflare/worker.js`](cloudflare/worker.js)** y los pasos están en **[`cloudflare/README.md`](cloudflare/README.md)**.
 
-La API debe implementar:
+Resumen:
+1. Crea un Worker en Cloudflare Dashboard y pega todo `cloudflare/worker.js`.
+2. En Settings → Variables and Secrets configura `BACKEND_URL` y `ALLOWED_ORIGIN`.
+3. Añade los secretos `ACCESS_KEY` y `BRIDGE_KEY`.
+4. Despliega el Worker y prueba `https://TU-WORKER/health`.
+5. En el panel HTML, pega la URL de tu Worker y el valor de `ACCESS_KEY`.
+
+**Importante:** este Worker es una puerta de enlace HTTP protegida, no un servidor FTP. No puede conectarse directamente a la IP privada de la Wii U. Necesita un puente HTTP compatible accesible mediante HTTPS que tenga acceso real a FTPiiU en la red local. Sin ese puente, listar, subir y descargar archivos no funcionará.
+
+## API que espera el panel
+
 - `GET /api/list?path=...`
 - `GET /api/download?path=...`
 - `PUT /api/upload?path=...`
 - `POST /api/mkdir?path=...`
 - `POST /api/delete?path=...&type=file|dir`
 
-Las respuestas cross-origin deben permitir CORS desde la página y la cabecera `Authorization`.
+El puente debe validar rutas y claves, y no permitir salir de la raíz de la SD.
 
-## Importante: FTPiiU de Wii U
+## Seguridad
 
-GitHub Pages solo aloja el HTML. No ejecuta Python ni mantiene un servidor FTP permanente. Un Cloudflare Worker tampoco puede conectarse directamente a una IP privada de casa como `192.168.x.x`.
-
-Para acceder a FTPiiU desde fuera de la red, hace falta un puente/túnel que se ejecute en un dispositivo dentro de la misma LAN que la Wii U. **No expongas el puerto FTP de la consola directamente a Internet.** La ruta habitual de la SD en FTPiiU puede ser `/fs/vol/external01/`, según cómo presente las rutas el servidor.
-
-El panel por sí solo no prueba una conexión FTP; esa conexión depende de configurar un backend autorizado y alcanzable.
+- No guardes claves reales en el repositorio público ni en el HTML.
+- No publiques el puerto FTPiiU directamente en Internet.
+- Usa HTTPS y claves largas y distintas para el panel (`ACCESS_KEY`) y para el puente (`BRIDGE_KEY`).
+- La ruta de la SD en FTPiiU suele mostrarse como `/fs/vol/external01/`, pero confirma la ruta que indique tu instalación.
 
 ## Desarrollo
 
-La interfaz está en `index.html`. El workflow está en `.github/workflows/pages.yml`.
+- Interfaz: `index.html`
+- Worker para Cloudflare: `cloudflare/worker.js`
+- Guía de configuración: `cloudflare/README.md`
+- Publicación: `.github/workflows/pages.yml`
