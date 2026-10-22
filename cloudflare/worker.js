@@ -73,6 +73,15 @@ export default {
       return new Response(null, { status: 204, headers: cors });
     }
 
+    if (url.pathname === "/" && request.method === "GET") {
+      return json({
+        service: "FTPHTMLV1 Cloudflare gateway",
+        status: "worker_online",
+        message: "El Worker está activo. Para comprobar su configuración abre /health. La gestión de archivos usa /api/* y requiere ACCESS_KEY.",
+        next: "Este Worker no se conecta directamente a FTPiiU. Necesita un puente HTTP HTTPS accesible desde Cloudflare en BACKEND_URL."
+      }, 200, cors);
+    }
+
     if (url.pathname === "/health" && request.method === "GET") {
       return json({
         service: "FTPHTMLV1 Cloudflare gateway",
