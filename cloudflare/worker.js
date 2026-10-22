@@ -83,10 +83,27 @@ export default {
     }
 
     if (url.pathname === "/health" && request.method === "GET") {
+      let backendUrlValid = false;
+      let backendUrlMessage = "Falta BACKEND_URL: todavía no se configuró un puente HTTP.";
+      try {
+        const backend = new URL(env.BACKEND_URL || "");
+        backendUrlValid = backend.protocol === "https:" && Boolean(backend.hostname);
+        backendUrlMessage = backendUrlValid
+          ? "La URL tiene formato HTTPS. Esto no confirma que el puente esté funcionando."
+          : "BACKEND_URL debe ser una URL HTTPS pública del puente HTTP; una IP privada de la Wii U no sirve aquí.";
+      } catch {
+        backendUrlMessage = "BACKEND_URL no es una URL válida. No pongas 192.168.0.18 ni otra IP local: hace falta la URL HTTPS pública de un puente HTTP real.";
+      }
       return json({
         service: "FTPHTMLV1 Cloudflare gateway",
-        configured: Boolean(env.BACKEND_URL && env.ACCESS_KEY && env.BRIDGE_KEY),
-        note: "This gateway requires an HTTP bridge; it does not connect to FTPiiU directly.",
+        configured: Boolean(backendUrlValid && env.ACCESS_KEY && env.BRIDGE_KEY),
+        backendUrlValid,
+        credentialsPresent: Boolean(env.ACCESS_KEY && env.BRIDGE_KEY),
+        note: "El Worker no habla FTP ni se conecta directamente a FTPiiU.",
+        message: backendUrlMessage,
+        nextStep: backendUrlValid
+          ? "Comprueba que el puente HTTP esté encendido y tenga acceso a FTPiiU."
+          : "Primero necesitas ejecutar un puente HTTP en un dispositivo de tu misma Wi-Fi que pueda alcanzar la Wii U, y publicarlo de forma segura por HTTPS."
       }, 200, cors);
     }
 
@@ -111,10 +128,17 @@ export default {
     try {
       backendBase = new URL(env.BACKEND_URL);
       if (backendBase.protocol !== "https:") {
-        return json({ error: "BACKEND_URL must use HTTPS." }, 500, cors);
+        return json({
+          error: "BACKEND_URL debe usar HTTPS.",
+          explanation: "No uses http:// ni la IP privada 192.168.0.18. Se necesita la URL HTTPS pública de un puente HTTP real; el Worker no puede conectarse directamente a FTPiiU."
+        }, 500, cors);
       }
+      if (!backendBase.hostname) throw new Error("Missing hostname");
     } catch {
-      return json({ error: "BACKEND_URL is not a valid HTTPS URL." }, 500, cors);
+      return json({
+        error: "BACKEND_URL no es una URL HTTPS válida.",
+        explanation: "No pongas 192.168.0.18 ni una IP local. Primero hace falta crear y publicar un puente HTTP que pueda conectarse a la Wii U."
+      }, 500, cors);
     }
 
     if (request.method === "PUT") {
